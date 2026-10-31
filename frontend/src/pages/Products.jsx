@@ -7,7 +7,7 @@ export default function Products(){
   const [show,setShow]=useState(false); const [form,setForm]=useState({name:'',type:'software',sales_price:0,cost_price:0,description:''});
   const [delId,setDelId]=useState(null); const [delOpen,setDelOpen]=useState(false);
   const load=()=>api.get('/products').then(r=>setList(r.data));
-  useEffect(load,[]);
+  useEffect(()=>{load();},[]);
   const filtered=list.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
   const save=async()=>{ await api.post('/products',form); setShow(false); load(); };
   const del=async()=>{ await api.delete('/products/'+delId); setDelOpen(false); load(); };
