@@ -256,6 +256,7 @@ router.post('/payments', authMiddleware, (req,res)=>{
   db.prepare('INSERT INTO payments (invoice_id,amount,method,paid_at,note) VALUES (?,?,?,?,?)').run(invoice_id,amount,method||'cash',paid_at||new Date().toISOString().slice(0,10),note);
   const newPaid = payments + amount;
   if(newPaid >= inv.total - 0.001) db.prepare(`UPDATE invoices SET status='paid' WHERE id=?`).run(invoice_id);
+  else if(newPaid > 0) db.prepare(`UPDATE invoices SET status='partially_paid' WHERE id=?`).run(invoice_id);
   res.json({ok:true,balance:inv.total-newPaid});
 });
 
@@ -264,7 +265,7 @@ router.get('/dashboard', authMiddleware, (req,res)=>{
   const totalCustomers = db.prepare('SELECT COUNT(*) c FROM customers').get().c;
   const activeSubs = db.prepare(`SELECT COUNT(*) c FROM subscriptions WHERE status='active'`).get().c;
   const totalRevenue = db.prepare('SELECT COALESCE(SUM(amount),0) s FROM payments').get().s;
-  const outstanding = db.prepare(`SELECT COALESCE(SUM(total),0) s FROM invoices WHERE status IN ('confirmed','draft')`).get().s;
+  const outstanding = db.prepare(`SELECT COALESCE(SUM(total),0) s FROM invoices WHERE status IN ('confirmed','draft','partially_paid')`).get().s;
   const overdue = db.prepare(`SELECT COUNT(*) c FROM invoices WHERE status='confirmed' AND due_date < date('now')`).get().c;
   const mrr = db.prepare(`SELECT COALESCE(SUM(p.price),0) s FROM subscriptions s JOIN plans p ON s.plan_id=p.id WHERE s.status='active' AND p.billing_interval='monthly'`).get().s;
   const recentSubs = db.prepare('SELECT s.*, c.name as customer_name FROM subscriptions s JOIN customers c ON s.customer_id=c.id ORDER BY s.id DESC LIMIT 5').all();
@@ -297,7 +298,7 @@ router.get('/customer/dashboard', authMiddleware, (req,res)=>{
   const cid = c.id;
   const activeSubs = db.prepare("SELECT COUNT(*) c FROM subscriptions WHERE customer_id=? AND status='active'").get(cid).c;
   const totalPaid = db.prepare('SELECT COALESCE(SUM(p.amount),0) s FROM payments p JOIN invoices i ON p.invoice_id=i.id WHERE i.customer_id=?').get(cid).s;
-  const outstanding = db.prepare("SELECT COALESCE(SUM(total),0) s FROM invoices WHERE customer_id=? AND status IN ('confirmed','draft')").get(cid).s;
+  const outstanding = db.prepare("SELECT COALESCE(SUM(total),0) s FROM invoices WHERE customer_id=? AND status IN ('confirmed','draft','partially_paid')").get(cid).s;
   const recentSubs = db.prepare('SELECT s.*, pl.name as plan_name FROM subscriptions s JOIN plans pl ON s.plan_id=pl.id WHERE s.customer_id=? ORDER BY s.id DESC LIMIT 5').all(cid);
   const recentInvs = db.prepare('SELECT * FROM invoices WHERE customer_id=? ORDER BY id DESC LIMIT 5').all(cid);
   const recentPays = db.prepare('SELECT p.* FROM payments p JOIN invoices i ON p.invoice_id=i.id WHERE i.customer_id=? ORDER BY p.id DESC LIMIT 5').all(cid);
