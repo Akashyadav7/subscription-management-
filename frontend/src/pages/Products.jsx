@@ -3,7 +3,7 @@ import api from '../services/api';
 import { Edit2 } from 'lucide-react';
 
 export default function Products(){
-  const [list,setList]=useState([]); const [q,setQ]=useState([]);
+  const [list,setList]=useState([]); const [q,setQ]=useState('');
   const [show,setShow]=useState(false); const [form,setForm]=useState({name:'',type:'software',sales_price:0,cost_price:0,description:''});
   const [delId,setDelId]=useState(null); const [delOpen,setDelOpen]=useState(false);
   const load=()=>api.get('/products').then(r=>setList(r.data));
