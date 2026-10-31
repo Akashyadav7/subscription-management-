@@ -178,6 +178,8 @@ CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_id);
 `;
 
 db.exec(schema);
+try { db.exec('ALTER TABLE subscriptions ADD COLUMN next_billing_date TEXT;'); } catch(e){}
+try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_inv_sub_period ON invoices(subscription_id, billing_period);'); } catch(e){}
 
 module.exports = db;
 module.exports.DB_PATH = DB_PATH;
